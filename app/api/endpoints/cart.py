@@ -4,7 +4,6 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
-from app.db.session import AsyncSessionLocal
 from app.utils.get_db import get_db
 
 router = APIRouter()
