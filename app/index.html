@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тестирование API Корзины покупок</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            margin-bottom: 10px;
+        }
+        .item {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 100px;
+        }
+        input, select {
+            margin-bottom: 10px;
+        }
+        button {
+            margin-left: 5px;
+        }
+        .message {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тестирование API Корзины покупок</h1>
+
+    <!-- Раздел для создания пользователя -->
+    <div class="section" id="user-section">
+        <h2>Создать пользователя</h2>
+        <label for="user-name">Имя:</label>
+        <input type="text" id="user-name">
+        <button onclick="createUser()">Создать пользователя</button>
+        <div id="user-message" class="message"></div>
+    </div>
+
+    <!-- Раздел для создания товара -->
+    <div class="section" id="product-section">
+        <h2>Создать товар</h2>
+        <label for="product-name">Название:</label>
+        <input type="text" id="product-name">
+        <button onclick="createProduct()">Создать товар</button>
+        <div id="product-message" class="message"></div>
+    </div>
+
+    <!-- Раздел для отображения списка товаров -->
+    <div class="section" id="products-section">
+        <h2>Список товаров</h2>
+        <button onclick="getProducts()">Обновить список товаров</button>
+        <div id="products-list"></div>
+    </div>
+
+    <!-- Раздел для добавления товара в корзину -->
+    <div class="section" id="add-to-cart-section">
+        <h2>Добавить товар в корзину</h2>
+        <label for="cart-user-id">ID пользователя:</label>
+        <input type="number" id="cart-user-id">
+        <br>
+        <label for="cart-product-id">ID товара:</label>
+        <input type="number" id="cart-product-id">
+        <br>
+        <label for="cart-quantity">Количество:</label>
+        <input type="number" id="cart-quantity" value="1">
+        <br>
+        <button onclick="addToCart()">Добавить в корзину</button>
+        <div id="cart-message" class="message"></div>
+    </div>
+
+    <!-- Раздел для просмотра корзины пользователя -->
+    <div class="section" id="cart-section">
+        <h2>Просмотр корзины</h2>
+        <label for="view-cart-user-id">ID пользователя:</label>
+        <input type="number" id="view-cart-user-id">
+        <button onclick="getCartItems()">Показать корзину</button>
+        <div id="cart-items"></div>
+    </div>
+
+    <!-- Скрипт для взаимодействия с API -->
+    <script>
+        const apiUrl = 'http://localhost:8000'; // URL вашего бэкенда
+
+        // Функция для создания пользователя
+        async function createUser() {
+            const userName = document.getElementById('user-name').value;
+            try {
+                const response = await fetch(`${apiUrl}/users/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: userName })
+                });
+                if (response.ok) {
+                    const user = await response.json();
+                    document.getElementById('user-message').textContent = `Пользователь создан с ID ${user.id}`;
+                } else {
+                    const errorData = await response.json();
+                    document.getElementById('user-message').textContent = `Ошибка: ${errorData.detail}`;
+                }
+            } catch (error) {
+                console.error('Ошибка при создании пользователя:', error);
+                document.getElementById('user-message').textContent = 'Ошибка при создании пользователя';
+            }
+        }
+
+        // Функция для создания товара
+        async function createProduct() {
+            const productName = document.getElementById('product-name').value;
+            try {
+                const response = await fetch(`${apiUrl}/products/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: productName })
+                });
+                if (response.ok) {
+                    const product = await response.json();
+                    document.getElementById('product-message').textContent = `Товар создан с ID ${product.id}`;
+                } else {
+                    const errorData = await response.json();
+                    document.getElementById('product-message').textContent = `Ошибка: ${errorData.detail}`;
+                }
+            } catch (error) {
+                console.error('Ошибка при создании товара:', error);
+                document.getElementById('product-message').textContent = 'Ошибка при создании товара';
+            }
+        }
+
+        // Функция для получения списка товаров
+        async function getProducts() {
+            try {
+                const response = await fetch(`${apiUrl}/products/`);
+                const products = await response.json();
+                displayProducts(products);
+            } catch (error) {
+                console.error('Ошибка при получении товаров:', error);
+            }
+        }
+
+        // Функция для отображения списка товаров
+        function displayProducts(products) {
+            const productsListDiv = document.getElementById('products-list');
+            productsListDiv.innerHTML = '';
+            products.forEach(product => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'item';
+                productDiv.textContent = `ID: ${product.id}, Название: ${product.name}`;
+                productsListDiv.appendChild(productDiv);
+            });
+        }
+
+        // Функция для добавления товара в корзину
+        async function addToCart() {
+            const userId = document.getElementById('cart-user-id').value;
+            const productId = document.getElementById('cart-product-id').value;
+            const quantity = document.getElementById('cart-quantity').value;
+
+            try {
+                const response = await fetch(`${apiUrl}/cart/items/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        product_id: parseInt(productId),
+                        quantity: parseInt(quantity)
+                    })
+                });
+                if (response.ok) {
+                    document.getElementById('cart-message').textContent = 'Товар добавлен в корзину';
+                } else {
+                    const errorData = await response.json();
+                    document.getElementById('cart-message').textContent = `Ошибка: ${errorData.detail}`;
+                }
+            } catch (error) {
+                console.error('Ошибка при добавлении товара в корзину:', error);
+                document.getElementById('cart-message').textContent = 'Ошибка при добавлении товара в корзину';
+            }
+        }
+
+        // Функция для получения товаров в корзине пользователя
+        async function getCartItems() {
+            const userId = document.getElementById('view-cart-user-id').value;
+            try {
+                const response = await fetch(`${apiUrl}/cart/items/?user_id=${userId}`);
+                const cartItems = await response.json();
+                displayCartItems(cartItems);
+            } catch (error) {
+                console.error('Ошибка при получении корзины:', error);
+            }
+        }
+
+        // Функция для отображения товаров в корзине
+        async function displayCartItems(cartItems) {
+            const cartItemsDiv = document.getElementById('cart-items');
+            cartItemsDiv.innerHTML = '';
+            for (const item of cartItems) {
+                // Получаем информацию о товаре
+                const productResponse = await fetch(`${apiUrl}/products/${item.product_id}`);
+                const product = await productResponse.json();
+
+                const cartItemDiv = document.createElement('div');
+                cartItemDiv.className = 'item';
+                cartItemDiv.innerHTML = `
+                    Товар: ${product.name}, Количество: ${item.quantity}
+                    <button onclick="updateCartItem(${item.id})">Изменить количество</button>
+                    <button onclick="removeFromCart(${item.id})">Удалить</button>
+                `;
+                cartItemsDiv.appendChild(cartItemDiv);
+            }
+        }
+
+        // Функция для удаления товара из корзины
+        async function removeFromCart(itemId) {
+            try {
+                const response = await fetch(`${apiUrl}/cart/items/${itemId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    alert('Товар удален из корзины');
+                    getCartItems(); // Обновляем корзину
+                } else {
+                    const errorData = await response.json();
+                    alert(`Ошибка: ${errorData.detail}`);
+                }
+            } catch (error) {
+                console.error('Ошибка при удалении товара из корзины:', error);
+            }
+        }
+
+        // Функция для обновления количества товара в корзине
+        async function updateCartItem(itemId) {
+            const newQuantity = prompt('Введите новое количество:');
+            if (newQuantity !== null && !isNaN(newQuantity) && newQuantity > 0) {
+                try {
+                    const response = await fetch(`${apiUrl}/cart/items/${itemId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ quantity: parseInt(newQuantity) })
+                    });
+                    if (response.ok) {
+                        alert('Количество обновлено');
+                        getCartItems(); // Обновляем корзину
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Ошибка: ${errorData.detail}`);
+                    }
+                } catch (error) {
+                    console.error('Ошибка при обновлении количества:', error);
+                }
+            } else {
+                alert('Некорректное количество');
+            }
+        }
+
+        // При загрузке страницы получаем список товаров
+        document.addEventListener('DOMContentLoaded', () => {
+            getProducts();
+        });
+    </script>
+</body>
+</html>
